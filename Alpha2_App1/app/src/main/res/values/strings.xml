@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Alpha2_App1</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <color name="ink">#05061C</color>
+    <color name="neonRed">#FF3155</color>
+    <color name="medGray">#3E3B3B</color>
+    <color name="darkGray">#201F1F</color>
+    <color name="lightGray">#605a5a</color>
+    <color name="sage">#A0C395</color>
+    <color name="white">#FFFFFF</color>
+    <color name="orangesicle">#FBBA69</color>
+    <color name="sunshine">#fff2cc</color>
+    <color name="slateBlue">#468499</color>
+    <color name="salmon">#FA8072</color>
+    <color name="teal">#008080</color>
+    <color name="moodyBlue">#468499</color>
+    <color name="smokeyTeal">#70AEA0</color>
+</resources>
