@@ -145,7 +145,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                 sendTv.setText("Successfully sent JSON string to " + urlSend + "\n\n" + "The following" +
                         " is the response from the server: " + responseStr);
             } else if (isSend == false) {
-                Gson gson = new GsonBuilder().create();
+                Gson gson = new Gson();
                 JsonIP jsonIp = gson.fromJson(responseStr, JsonIP.class);
                 receiveTv.setText("Successfully received JSON string from " + urlReceive + "\n\n" + "The following" +
                         " is the response from the server: " + jsonIp);
