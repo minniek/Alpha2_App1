@@ -15,14 +15,18 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONStringer;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -31,6 +35,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,11 +49,13 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
     String responseStr = "";
     String TAG = "Alpha2_App1";
+    Boolean isSend;
 
     // Send JSON string to:
-    //String fullURL = "http://www.155.41.125.181/post.php";
-    //String serverIP = "155.41.125.181"; String serverPage = "server_v1.php";
-    String serverIP = "www.httpbin.org"; final String serverPage = "post";
+    String urlSend = "http://www.httpbin.org/post"; // A test server that accepts post requests
+
+    // Receive JSON string from:
+    String urlReceive = "http://jsonip.com/"; // Returns public IP of device
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,21 +102,29 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     // Assign tasks for buttons
     public void onClick(View v) {
         if (v == sendBtn) {
+            isSend = true;
             // Check for network connection
-            String fullURL = "http://" + serverIP + "/" + serverPage;
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo nwInfo = connMgr.getActiveNetworkInfo();
-            Log.d(TAG, fullURL);
             // If network is present, start AsyncTask to connect to given URL
             if ((nwInfo != null) && (nwInfo.isConnected())) {
-                new StartAsyncTask().execute(fullURL);
+                new StartAsyncTask().execute(urlSend);
             } else {
                 sendTv.setText("ERROR No network connection detected.");
             }
         }
 
         if (v == receiveBtn) {
-
+            isSend = false;
+            // Check for network connection
+            ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo nwInfo = connMgr.getActiveNetworkInfo();
+            // If network is present, start AsyncTask to connect to given URL
+            if ((nwInfo != null) && (nwInfo.isConnected())) {
+                new StartAsyncTask().execute(urlReceive);
+            } else {
+                sendTv.setText("ERROR No network connection detected.");
+            }
         }
 
         if (v == clearBtn) {
@@ -132,64 +147,67 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         }
 
         protected void onPostExecute(String responseStr) {
-            /*if (responseStr != null) {
-                sendTv.setText("Sent the following JSON string to URL");
-            }*/
-
-            sendTv.setText(responseStr);
+            if (isSend == true) {
+                sendTv.setText("Successfully sent JSON string to " + urlSend + "\n\n" + "The following" +
+                        " is the response from the server: " + responseStr);
+            } else if (isSend == false) {
+                receiveTv.setText("Successfully received JSON string from " + urlReceive + "\n\n" + "The following" +
+                        " is the response from the server: " + responseStr);
+            }
         }
 
         private String connectToURL(String url) throws IOException {
-            try {
-                URL myURL = new URL(url);
-                HttpURLConnection conn = (HttpURLConnection)myURL.openConnection();
+            Log.d(TAG, "isSend: " + isSend);
+            if (isSend == true) {
+                try {
+                    URL myURL = new URL(url);
+                    HttpURLConnection conn = (HttpURLConnection) myURL.openConnection();
 
-                conn.setReadTimeout(10 * 1000); // milliseconds
-                conn.setConnectTimeout(10 * 1000); // milliseconds
-                conn.setDoOutput(true);
-                //conn.setDoInput(true);
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                //conn.setRequestProperty("Accept", "application/json");
-                conn.connect();
+                    conn.setReadTimeout(10 * 1000); // milliseconds
+                    conn.setConnectTimeout(10 * 1000); // milliseconds
+                    conn.setDoOutput(true);
+                    conn.setDoInput(true);
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Accept", "application/json");
+                    conn.connect();
 
-                // Create JSON object
-                JSONObject sendJsonOb = new JSONObject();
-                sendJsonOb.put("key0", "value0");
-                sendJsonOb.put("key1", "value1");
-                sendJsonOb.put("key2", "value2");
-                Log.d(TAG, "sendJsonOb's content: " + sendJsonOb.toString());
+                    // Create Data POJO and convert to JSON string
+                    Data data = new Data();
+                    Gson gson = new Gson();
+                    String dataGsonStr = gson.toJson(data);
 
-                OutputStreamWriter osw = new OutputStreamWriter(conn.getOutputStream());
-                osw.write(sendJsonOb.toString());
-                int responseCode = conn.getResponseCode();
-                Log.d(TAG, "Response code: " + responseCode);
-                osw.flush();
-                osw.close();
+                    // Send JSON string to server
+                    DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+                    dos.write(dataGsonStr.getBytes());
+                    int responseCode = conn.getResponseCode();
+                    Log.d(TAG, "Response code: " + responseCode);
 
-                // TODO Change this later (temp fix to avoid IOException FileNotFoundException)
-                if (responseCode > 0) {
-                    responseStr = "The following JSON string was sent to " + url + ": " + sendJsonOb.toString();
-                } else {
-                    responseStr = "Error: JSON string was not sent.";
+                    InputStream is = conn.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                    StringBuilder content = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        content.append(line);
+                    }
+                    responseStr = content.toString();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                    responseStr = "ERROR MalformedURLException caught: " + e;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    responseStr = "ERROR IOException caught: " + e;
                 }
-                return responseStr;
-
-                  /*
+            } else if (isSend == false) {
+                // try {
+                Data data = new Data();
+                Gson gson = new Gson();
                 HttpClient httpClient = new DefaultHttpClient();
-                HttpPost httpPost = new HttpPost(url);
-                Log.d(TAG, "URL in HttpPost(url): " + url);
+                HttpGet httpGet = new HttpGet(url);
 
-                // Create JSON object
-                JSONObject sendThis = new JSONObject();
-                sendThis.put("key", "value");
-
-                // Set HTTP parameters
-                StringEntity se = new StringEntity(sendThis.toString());
-                httpPost.setEntity(se);
-                httpPost.setHeader("Content-type", "application/json");
-
-                HttpResponse httpResponse = httpClient.execute(httpPost);
+                HttpResponse httpResponse = httpClient.execute(httpGet);
+                int responseCode = httpResponse.getStatusLine().getStatusCode();
+                Log.d(TAG, "Response code: " + responseCode);
                 HttpEntity entity = httpResponse.getEntity();
 
                 if (entity != null) {
@@ -200,20 +218,33 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                     while ((line = reader.readLine()) != null) {
                         content.append(line);
                     }
+                    data = gson.fromJson(content.toString(), Data.class);
                     responseStr = content.toString();
-                    response.close();
                 }
-                */
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-                return responseStr = "ERROR MalformedURLException caught: " + e;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return responseStr = "ERROR IOException caught: " + e;
-            } catch (JSONException e) {
-                e.printStackTrace();
-                return responseStr = "ERROR JSONException caught: " + e;
             }
+            return responseStr;
+        }
+    }
+
+    // POJO
+    public class Data {
+        private int dataInt = 123;
+        private String dataStr = "testing 123...";
+
+        public int getDataInt() {
+            return dataInt;
+        }
+
+        public String getDataStr() {
+            return dataStr;
+        }
+
+        public void setDataInt(int dataInt) {
+            this.dataInt = dataInt;
+        }
+
+        public void setDataStr(String dataStr) {
+            this.dataStr = dataStr;
         }
     }
 }
