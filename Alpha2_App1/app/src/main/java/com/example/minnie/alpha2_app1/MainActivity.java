@@ -16,26 +16,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONStringer;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -49,7 +42,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
     String responseStr = "";
     String TAG = "Alpha2_App1";
-    Boolean isSend;
+    Boolean isSend; // flag to determine GET or POST request execution
 
     // Send JSON string to:
     String urlSend = "http://www.httpbin.org/post"; // A test server that accepts post requests
@@ -63,12 +56,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         // Buttons
-        sendBtn = (Button)findViewById(R.id.send_btn);
-        receiveBtn = (Button)findViewById(R.id.receive_btn);
-        clearBtn = (Button)findViewById(R.id.clear_btn);
-        sendBtn.setOnClickListener(this);
-        receiveBtn.setOnClickListener(this);
-        clearBtn.setOnClickListener(this);
+        sendBtn = (Button)findViewById(R.id.send_btn); sendBtn.setOnClickListener(this);
+        receiveBtn = (Button)findViewById(R.id.receive_btn); receiveBtn.setOnClickListener(this);
+        clearBtn = (Button)findViewById(R.id.clear_btn); clearBtn.setOnClickListener(this);
 
         // TextViews
         sendTv = (TextView)findViewById(R.id.send_textView);
@@ -102,7 +92,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     // Assign tasks for buttons
     public void onClick(View v) {
         if (v == sendBtn) {
+            // Set flag to execute POST request in AsyncTask
             isSend = true;
+
             // Check for network connection
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo nwInfo = connMgr.getActiveNetworkInfo();
@@ -115,7 +107,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         }
 
         if (v == receiveBtn) {
+            // Set flag to execute GET request in AsyncTask
             isSend = false;
+
             // Check for network connection
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo nwInfo = connMgr.getActiveNetworkInfo();
@@ -123,7 +117,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             if ((nwInfo != null) && (nwInfo.isConnected())) {
                 new StartAsyncTask().execute(urlReceive);
             } else {
-                sendTv.setText("ERROR No network connection detected.");
+                receiveTv.setText("ERROR No network connection detected.");
             }
         }
 
@@ -151,13 +145,15 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                 sendTv.setText("Successfully sent JSON string to " + urlSend + "\n\n" + "The following" +
                         " is the response from the server: " + responseStr);
             } else if (isSend == false) {
+                Gson gson = new GsonBuilder().create();
+                JsonIP jsonIp = gson.fromJson(responseStr, JsonIP.class);
                 receiveTv.setText("Successfully received JSON string from " + urlReceive + "\n\n" + "The following" +
-                        " is the response from the server: " + responseStr);
+                        " is the response from the server: " + jsonIp);
             }
         }
 
         private String connectToURL(String url) throws IOException {
-            Log.d(TAG, "isSend: " + isSend);
+            // Execute the following if "Send" button is pressed
             if (isSend == true) {
                 try {
                     URL myURL = new URL(url);
@@ -198,10 +194,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                     e.printStackTrace();
                     responseStr = "ERROR IOException caught: " + e;
                 }
-            } else if (isSend == false) {
-                // try {
-                Data data = new Data();
-                Gson gson = new Gson();
+            } else if (isSend == false) { // Execute the following if "Receive" button is pressed
                 HttpClient httpClient = new DefaultHttpClient();
                 HttpGet httpGet = new HttpGet(url);
 
@@ -218,7 +211,6 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                     while ((line = reader.readLine()) != null) {
                         content.append(line);
                     }
-                    data = gson.fromJson(content.toString(), Data.class);
                     responseStr = content.toString();
                 }
             }
@@ -226,10 +218,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         }
     }
 
-    // POJO
+    // POJO for send
     public class Data {
-        private int dataInt = 123;
-        private String dataStr = "testing 123...";
+        private int dataInt = 700;
+        private String dataStr = "EC700 Alpha2";
 
         public int getDataInt() {
             return dataInt;
@@ -245,6 +237,43 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         public void setDataStr(String dataStr) {
             this.dataStr = dataStr;
+        }
+    }
+
+    // POJO for receive
+    public class JsonIP {
+        private String ip;
+        private String about;
+        private URL url;
+
+        public String getIp() {
+            return ip;
+        }
+
+        public String getAbout() {
+            return about;
+        }
+
+        public URL getPro() {
+            return url;
+        }
+
+        public void setIp(String ip) {
+            this.ip = ip;
+        }
+
+        public void setAbout(String about) {
+            this.about = about;
+        }
+
+        public void setPro(URL url) {
+            this.url = url;
+        }
+
+        @Override
+        public String toString() {
+            return "JsonIp [ip=" + ip + ", about=" + about
+                    + ", Pro!=" + url + "]";
         }
     }
 }
