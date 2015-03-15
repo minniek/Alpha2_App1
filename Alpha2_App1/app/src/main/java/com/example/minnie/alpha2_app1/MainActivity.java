@@ -42,7 +42,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
     String responseStr = "";
     String TAG = "Alpha2_App1";
-    Boolean isSend; // flag to determine GET or POST request execution
+    Boolean isGet; // flag to determine GET or POST request execution
 
     // Send JSON string to:
     String urlSend = "http://www.httpbin.org/post"; // A test server that accepts post requests
@@ -93,7 +93,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     public void onClick(View v) {
         if (v == sendBtn) {
             // Set flag to execute POST request in AsyncTask
-            isSend = true;
+            isGet = false;
 
             // Check for network connection
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -108,7 +108,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         if (v == receiveBtn) {
             // Set flag to execute GET request in AsyncTask
-            isSend = false;
+            isGet = true;
 
             // Check for network connection
             ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -141,10 +141,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         }
 
         protected void onPostExecute(String responseStr) {
-            if (isSend == true) {
+            if (isGet == true) {
                 sendTv.setText("Successfully sent JSON string to " + urlSend + "\n\n" + "The following" +
                         " is the response from the server: " + responseStr);
-            } else if (isSend == false) {
+            } else if (isGet == false) {
                 Gson gson = new Gson();
                 JsonIP jsonIp = gson.fromJson(responseStr, JsonIP.class);
                 receiveTv.setText("Successfully received JSON string from " + urlReceive + "\n\n" + "The following" +
@@ -154,7 +154,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         private String connectToURL(String url) throws IOException {
             // Execute the following if "Send" button is pressed
-            if (isSend == true) {
+            if (isGet == true) {
                 try {
                     URL myURL = new URL(url);
                     HttpURLConnection conn = (HttpURLConnection) myURL.openConnection();
@@ -194,7 +194,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                     e.printStackTrace();
                     responseStr = "ERROR IOException caught: " + e;
                 }
-            } else if (isSend == false) { // Execute the following if "Receive" button is pressed
+            } else if (isGet == false) { // Execute the following if "Receive" button is pressed
                 HttpClient httpClient = new DefaultHttpClient();
                 HttpGet httpGet = new HttpGet(url);
 
